@@ -8,12 +8,6 @@
 
 package com.yandex.disk.rest;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.internal.Util;
 import com.yandex.disk.rest.exceptions.CancelledUploadingException;
 import com.yandex.disk.rest.util.Logger;
 import com.yandex.disk.rest.util.LoggerFactory;
@@ -23,6 +17,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import okhttp3.internal.Util;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.Okio;
@@ -37,12 +34,12 @@ import okio.Source;
     /**
      * Returns a new request body that transmits the content of {@code file}.
      * <br/>
-     * Based on {@link RequestBody#create(com.squareup.okhttp.MediaType, java.io.File)}
+     * Based on {@link RequestBody#create(okhttp3.MediaType, java.io.File)}
      *
-     * @see RequestBody#create(com.squareup.okhttp.MediaType, java.io.File)
+     * @see RequestBody#create(okhttp3.MediaType, java.io.File)
      */
-    /* package */ static RequestBody create(@NonNull final MediaType contentType, @Nullable final File file,
-                                            final long startOffset, @Nullable final ProgressListener listener) {
+    /* package */ static RequestBody create(final MediaType contentType, final File file,
+                                            final long startOffset, final ProgressListener listener) {
         if (file == null) {
             throw new NullPointerException("content == null");
         }

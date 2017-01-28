@@ -8,8 +8,6 @@
 
 package com.yandex.disk.rest.exceptions.http;
 
-import android.support.annotation.Nullable;
-
 import com.yandex.disk.rest.exceptions.ServerIOException;
 import com.yandex.disk.rest.json.ApiError;
 
@@ -23,12 +21,11 @@ import com.yandex.disk.rest.json.ApiError;
  */
 public class HttpCodeException extends ServerIOException {
 
-    protected final int code;
+    private final int code;
 
-    @Nullable
-    protected final ApiError response;
+    private final ApiError response;
 
-    public HttpCodeException(final int code, @Nullable final ApiError response) {
+    public HttpCodeException(final int code, final ApiError response) {
         super();
         this.code = code;
         this.response = response;
@@ -42,7 +39,6 @@ public class HttpCodeException extends ServerIOException {
         return code;
     }
 
-    @Nullable
     public ApiError getResponse() {
         return response;
     }

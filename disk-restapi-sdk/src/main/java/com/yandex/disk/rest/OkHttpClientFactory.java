@@ -8,26 +8,19 @@
 
 package com.yandex.disk.rest;
 
-import com.squareup.okhttp.OkHttpClient;
+import okhttp3.OkHttpClient;
 
-import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
-public class OkHttpClientFactory {
+class OkHttpClientFactory {
 
-    private static final int CONNECT_TIMEOUT_MILLIS = 30 * 1000;
-    private static final int READ_TIMEOUT_MILLIS = 30 * 1000;
-    private static final int WRITE_TIMEOUT_MILLIS = 30 * 1000;
-
-    public static OkHttpClient makeClient() {
-        OkHttpClient client = new OkHttpClient();
-
-        client.setConnectTimeout(CONNECT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-        client.setReadTimeout(READ_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-        client.setWriteTimeout(WRITE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-
-        client.setFollowSslRedirects(true);
-        client.setFollowRedirects(true);
-
-        return client;
+    static OkHttpClient.Builder makeClient() {
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        builder.connectTimeout(30, SECONDS);
+        builder.readTimeout(30, SECONDS);
+        builder.writeTimeout(30, SECONDS);
+        builder.followSslRedirects(true);
+        builder.followRedirects(true);
+        return builder;
     }
 }

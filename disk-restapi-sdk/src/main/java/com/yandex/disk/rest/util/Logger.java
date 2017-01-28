@@ -8,26 +8,23 @@
 
 package com.yandex.disk.rest.util;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 public interface Logger {
 
     boolean isDebugEnabled();
 
-    void debug(@NonNull String message);
+    void debug(String message);
 
-    void debug(@NonNull String message, @Nullable Throwable th);
+    void debug(String message, Throwable th);
 
-    void info(@NonNull String message);
+    void info(String message);
 
-    void info(@NonNull String message, @Nullable Throwable th);
+    void info(String message, Throwable th);
 
-    void warn(@NonNull String message);
+    void warn(String message);
 
-    void warn(@NonNull String message, @Nullable Throwable th);
+    void warn(String message, Throwable th);
 
-    void error(@NonNull String message);
+    void error(String message);
 
-    void error(@NonNull String message, @Nullable Throwable th);
+    void error(String message, Throwable th);
 }

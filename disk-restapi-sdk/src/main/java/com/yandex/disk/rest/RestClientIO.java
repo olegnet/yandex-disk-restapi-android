@@ -8,17 +8,7 @@
 
 package com.yandex.disk.rest;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 import com.google.gson.Gson;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
-import com.squareup.okhttp.ResponseBody;
-import com.squareup.okhttp.internal.http.HttpMethod;
 import com.yandex.disk.rest.exceptions.CancelledDownloadException;
 import com.yandex.disk.rest.exceptions.DownloadNoSpaceAvailableException;
 import com.yandex.disk.rest.exceptions.ServerIOException;
@@ -45,32 +35,38 @@ import java.io.OutputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import okhttp3.internal.http.HttpMethod;
+
 /* package */ class RestClientIO {
 
-    @NonNull
     private static final Logger logger = LoggerFactory.getLogger(RestClientIO.class);
 
-    @NonNull private static final String ETAG_HEADER = "Etag";
-    @NonNull private static final String SHA256_HEADER = "Sha256";
-    @NonNull private static final String SIZE_HEADER = "Size";
-    @NonNull private static final String CONTENT_LENGTH_HEADER = "Content-Length";
-    @NonNull private static final String CONTENT_RANGE_HEADER = "Content-Range";
+    private static final String ETAG_HEADER = "Etag";
+    private static final String SHA256_HEADER = "Sha256";
+    private static final String SIZE_HEADER = "Size";
+    private static final String CONTENT_LENGTH_HEADER = "Content-Length";
+    private static final String CONTENT_RANGE_HEADER = "Content-Range";
 
-    @NonNull private static final String METHOD_GET = "GET";
-    @NonNull private static final String METHOD_DELETE = "DELETE";
-    @NonNull private static final String METHOD_PUT = "PUT";
+    private static final String METHOD_GET = "GET";
+    private static final String METHOD_DELETE = "DELETE";
+    private static final String METHOD_PUT = "PUT";
 
-    @NonNull
     private static final Pattern CONTENT_RANGE_HEADER_PATTERN = Pattern.compile("bytes\\D+(\\d+)-\\d+/(\\d+)");
 
-    @NonNull
     private final OkHttpClient client;
 
-    /* package */ RestClientIO(@NonNull final OkHttpClient client) {
+    /* package */ RestClientIO(final OkHttpClient client) {
         this.client = client;
     }
 
-    /* package */ void downloadUrl(@NonNull final String url, @NonNull final DownloadListener downloadListener)
+    /* package */ void downloadUrl(final String url, final DownloadListener downloadListener)
             throws IOException, CancelledDownloadException, DownloadNoSpaceAvailableException,
             HttpCodeException {
 
@@ -154,7 +150,7 @@ import java.util.regex.Pattern;
             while ((count = content.read(downloadBuffer)) != -1) {
                 if (downloadListener.hasCancelled()) {
                     logger.info("Downloading " + url + " canceled");
-                    client.cancel(request.tag());
+                    cancel(request.tag());
                     throw new CancelledDownloadException();
                 }
                 os.write(downloadBuffer, 0, count);
@@ -165,35 +161,22 @@ import java.util.regex.Pattern;
             throw ex;
         } catch (Exception e) {
             logger.warn(e.getMessage(), e);
-            client.cancel(request.tag());
-            if (e instanceof IOException) {
-                throw (IOException) e;
-            } else if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            } else if (e instanceof DownloadNoSpaceAvailableException) {
-                throw (DownloadNoSpaceAvailableException) e;
-            } else {
-                // never happen
-                throw new RuntimeException(e);
-            }
+           	throw e;
         } finally {
             try {
-                if (os != null) {
-                    os.close();
-                }
+                if (os != null) os.close();
             } catch (IOException ex) {
                 // nothing
             }
             try {
                 response.body().close();
-            } catch (IOException | NullPointerException ex) {
+            } catch (NullPointerException ex) {
                 logger.warn(ex.getMessage(), ex);
             }
         }
     }
 
-    @Nullable
-    private ContentRangeResponse parseContentRangeHeader(@Nullable final String header) {
+    private ContentRangeResponse parseContentRangeHeader(final String header) {
         if (header == null) {
             return null;
         }
@@ -212,8 +195,8 @@ import java.util.regex.Pattern;
         }
     }
 
-    /* package */ void uploadFile(@NonNull final String url, @NonNull final File file, final long startOffset,
-                           @Nullable final ProgressListener progressListener)
+    /* package */ void uploadFile(final String url, final File file, final long startOffset,
+                           final ProgressListener progressListener)
             throws IOException, HttpCodeException {
         logger.debug("uploadFile: put to url: "+url);
         final MediaType mediaType = MediaType.parse("application/octet-stream");
@@ -232,17 +215,14 @@ import java.util.regex.Pattern;
         }
         final Request request = requestBuilder.build();
 
-        final Response response = client
-                .newCall(request)
-                .execute();
+        final Response response = client.newCall(request).execute();
 
         final String statusLine = response.message();
         logger.debug("headUrl: " + statusLine + " for url " + url);
 
         final int code = response.code();
 
-        final ResponseBody responseBody = response.body();
-        responseBody.close();
+        response.body().close();
 
         switch (code) {
             case 201:
@@ -266,7 +246,7 @@ import java.util.regex.Pattern;
         }
     }
 
-    /* package */ long getUploadedSize(@NonNull final String url, @NonNull final Hash hash)
+    /* package */ long getUploadedSize(final String url, final Hash hash)
             throws IOException {
 
         final Request request = new Request.Builder()
@@ -293,8 +273,7 @@ import java.util.regex.Pattern;
         }
     }
 
-    @NonNull
-    /* package */ Operation getOperation(@NonNull final String url)
+    /* package */ Operation getOperation(final String url)
             throws IOException, HttpCodeException {
         final Response response = call(METHOD_GET, url);
         final int code = response.code();
@@ -304,8 +283,7 @@ import java.util.regex.Pattern;
         return parseJson(response, Operation.class);
     }
 
-    @NonNull
-    /* package */ Link delete(@NonNull final String url)
+    /* package */ Link delete(final String url)
             throws IOException, ServerIOException {
         Response response = null;
         try {
@@ -327,8 +305,7 @@ import java.util.regex.Pattern;
         }
     }
 
-    @NonNull
-    /* package */ Link put(@NonNull final String url)
+    /* package */ Link put(final String url)
             throws IOException, ServerIOException {
         Response response = null;
         try {
@@ -351,8 +328,7 @@ import java.util.regex.Pattern;
         }
     }
 
-    private void close(@Nullable final Response response)
-            throws IOException {
+    private void close(final Response response) throws IOException {
         if (response == null) {
             return;
         }
@@ -363,8 +339,7 @@ import java.util.regex.Pattern;
         responseBody.close();
     }
 
-    @NonNull
-    private Response call(@NonNull final String method, @NonNull final String url)
+    private Response call(final String method, final String url)
             throws IOException {
         final RequestBody body = HttpMethod.requiresRequestBody(method)
                 ? RequestBody.create(MediaType.parse("text/plain"), "")
@@ -373,12 +348,10 @@ import java.util.regex.Pattern;
                 .method(method, body)
                 .url(url)
                 .build();
-        return client.newCall(request)
-                .execute();
+        return client.newCall(request).execute();
     }
 
-    @NonNull
-    private <T> T parseJson(@NonNull final Response response, @NonNull final Class<T> classOfT)
+    private <T> T parseJson(final Response response, final Class<T> classOfT)
             throws IOException {
         ResponseBody responseBody = null;
         try {
@@ -391,6 +364,14 @@ import java.util.regex.Pattern;
             }
         }
     }
+
+
+	private void cancel(Object tag) {
+		//noinspection Convert2streamapi
+		for (Call call : client.dispatcher().runningCalls()) {
+			if (tag.equals(call.request().tag())) call.cancel();
+		}
+	}
 
     private static class ContentRangeResponse {
 
