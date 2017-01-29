@@ -267,7 +267,7 @@ import okhttp3.internal.http.HttpMethod;
         responseBody.close();
         switch (code) {
             case 200:
-                return Long.valueOf(response.header(CONTENT_LENGTH_HEADER, "0"));
+                return Long.parseLong(response.header(CONTENT_LENGTH_HEADER, "0"));
             default:
                 return 0;
         }
