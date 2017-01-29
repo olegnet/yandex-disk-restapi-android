@@ -59,7 +59,6 @@ public class ResourcePath {
 
         if (path != null ? !path.equals(that.path) : that.path != null) return false;
         if (prefix != null ? !prefix.equals(that.prefix) : that.prefix != null) return false;
-
         return true;
     }
 

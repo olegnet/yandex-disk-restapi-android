@@ -8,16 +8,13 @@
 
 package com.yandex.disk.rest.util;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.yandex.android.rest.BuildConfig;
 
 public class LoggerFactory {
 
-    @NonNull
-    public static Logger getLogger(@NonNull final Class clazz) {
+    public static Logger getLogger(final Class clazz) {
         final String tag = clazz.getSimpleName();
         return new Logger() {
 
@@ -27,42 +24,42 @@ public class LoggerFactory {
             }
 
             @Override
-            public void debug(@NonNull String message) {
+            public void debug(String message) {
                 Log.d(tag, message);
             }
 
             @Override
-            public void debug(@NonNull String message, @Nullable Throwable throwable) {
+            public void debug(String message, Throwable throwable) {
                 Log.d(tag, message, throwable);
             }
 
             @Override
-            public void info(@NonNull String message) {
+            public void info(String message) {
                 Log.d(tag, message);
             }
 
             @Override
-            public void info(@NonNull String message, @Nullable Throwable throwable) {
+            public void info(String message, Throwable throwable) {
                 Log.i(tag, message, throwable);
             }
 
             @Override
-            public void warn(@NonNull String message) {
+            public void warn(String message) {
                 Log.w(tag, message);
             }
 
             @Override
-            public void warn(@NonNull String message, @Nullable Throwable throwable) {
+            public void warn(String message, Throwable throwable) {
                 Log.w(tag, message, throwable);
             }
 
             @Override
-            public void error(@NonNull String message) {
+            public void error(String message) {
                 Log.e(tag, message);
             }
 
             @Override
-            public void error(@NonNull String message, @Nullable Throwable throwable) {
+            public void error(String message, Throwable throwable) {
                 Log.e(tag, message, throwable);
             }
         };

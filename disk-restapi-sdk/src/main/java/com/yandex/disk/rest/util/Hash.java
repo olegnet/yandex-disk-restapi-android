@@ -47,6 +47,7 @@ public class Hash {
         try {
             return getHash(is, file.length());
         } finally {
+            //noinspection ThrowFromFinallyBlock
             close(is);
         }
     }

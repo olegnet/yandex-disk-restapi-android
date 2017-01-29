@@ -8,8 +8,6 @@
 
 package com.yandex.disk.rest.retrofit;
 
-import android.support.annotation.NonNull;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.yandex.disk.rest.exceptions.http.BadGatewayException;
@@ -36,72 +34,30 @@ import com.yandex.disk.rest.json.ApiError;
 import com.yandex.disk.rest.util.Logger;
 import com.yandex.disk.rest.util.LoggerFactory;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 
-import retrofit.Response;
+import retrofit2.Response;
 
 public class ErrorHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ErrorHandler.class);
 
-/*
-    TODO
-
-    @Override
-    public Throwable handleError(RetrofitError retrofitError) {
-        RetrofitError.Kind kind = retrofitError.getKind();
-        switch (kind) {
-            case NETWORK:
-                Throwable th = retrofitError.getCause();
-                return th instanceof IOException ? th : new IOException(th);
-
-            case CONVERSION:
-                return new RetrofitConversionException(retrofitError.getCause());
-
-            case HTTP:
-                try {
-                    Response response = retrofitError.getResponse();
-                    int httpCode = response.getStatus();
-                    return createHttpCodeException(httpCode, response.getBody().in());
-                } catch (IOException ex) {
-                    logger.debug("errorHandler", retrofitError);
-                    return ex;
-                }
-
-            case UNEXPECTED:
-                return new ServerIOException(retrofitError.getCause());
-
-            default:
-                return new ServerIOException("ErrorHandler: unhandled error " + kind.name());
-        }
-    }
-*/
-
     /**
      * @return never return a value, just make compiler happy
      */
-    @NonNull
-    public static <T> T throwHttpCodeException(@NonNull Response<T> response)
+    public static <T> T throwHttpCodeException(Response<T> response)
             throws HttpCodeException {
-        ApiError error;
-        try {
-            error = readApiError(response.errorBody().byteStream());
-        } catch (IOException ex) {
-            error = ApiError.UNKNOWN;
-        }
+        ApiError error = readApiError(response.errorBody().byteStream());
         throw createHttpCodeException(response.code(), error);
     }
 
-    @NonNull
-    public static HttpCodeException createHttpCodeException(final int httpCode, @NonNull final InputStream in) {
+    public static HttpCodeException createHttpCodeException(final int httpCode, final InputStream in) {
         return createHttpCodeException(httpCode, readApiError(in));
     }
 
-    @NonNull
-    private static ApiError readApiError(@NonNull final InputStream in) {
+    private static ApiError readApiError(final InputStream in) {
         final Reader reader = new InputStreamReader(in);
         try {
             return new Gson().fromJson(reader, ApiError.class);
@@ -110,8 +66,7 @@ public class ErrorHandler {
         }
     }
 
-    @NonNull
-    private static HttpCodeException createHttpCodeException(final int httpCode, @NonNull final ApiError apiError) {
+    private static HttpCodeException createHttpCodeException(final int httpCode, final ApiError apiError) {
         logger.debug("getStatus=" + httpCode);
         switch (httpCode) {
             case 400:

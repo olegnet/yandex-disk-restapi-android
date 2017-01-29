@@ -8,28 +8,25 @@
 
 package com.yandex.disk.rest.retrofit;
 
-import android.support.annotation.NonNull;
-
-import com.squareup.okhttp.Interceptor;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
 import com.yandex.disk.rest.CustomHeader;
 
 import java.io.IOException;
 import java.util.List;
 
+import okhttp3.Interceptor;
+import okhttp3.Request;
+import okhttp3.Response;
+
 public class RequestInterceptor implements Interceptor {
 
-    @NonNull
     private final List<CustomHeader> headers;
 
-    public RequestInterceptor(@NonNull final List<CustomHeader> headers) {
+    public RequestInterceptor(final List<CustomHeader> headers) {
         this.headers = headers;
     }
 
-    @NonNull
     @Override
-    public Response intercept(@NonNull final Chain chain) throws IOException {
+    public Response intercept(final Interceptor.Chain chain) throws IOException {
         Request original = chain.request();
         Request.Builder builder = original.newBuilder();
         for (CustomHeader header : headers) {

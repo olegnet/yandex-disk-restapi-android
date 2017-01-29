@@ -8,9 +8,6 @@
 
 package com.yandex.disk.rest;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.LinkedHashMap;
@@ -18,21 +15,17 @@ import java.util.Map;
 
 /* package */ class QueryBuilder {
 
-    @NonNull
     private static final String UTF8 = "UTF-8";
 
-    @NonNull
     private final Map<String, Object> queryMap;
 
-    @NonNull
     private final String url;
 
-    /* package */ QueryBuilder(@NonNull final String url) {
+    /* package */ QueryBuilder(final String url) {
         this.url = url;
         this.queryMap = new LinkedHashMap<>();
     }
 
-    @NonNull
     /* package */ String build() {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, Object> entry : queryMap.entrySet()) {
@@ -49,8 +42,7 @@ import java.util.Map;
         return url + "?" + sb.toString();
     }
 
-    @NonNull
-    private static String encode(@NonNull final String key) {
+    private static String encode(final String key) {
         try {
             return URLEncoder.encode(key, UTF8);
         } catch (UnsupportedEncodingException ex) {
@@ -58,20 +50,17 @@ import java.util.Map;
         }
     }
 
-    @NonNull
-    /* package */ QueryBuilder add(@NonNull final String key, @Nullable final String value) {
+    /* package */ QueryBuilder add(final String key, final String value) {
         queryMap.put(key, value);
         return this;
     }
 
-    @NonNull
-    /* package */ QueryBuilder add(@NonNull final String key, @Nullable final Boolean value) {
+    /* package */ QueryBuilder add(final String key, final Boolean value) {
         queryMap.put(key, value);
         return this;
     }
 
-    @NonNull
-    /* package */ QueryBuilder add(@NonNull final String key, @Nullable final Integer value) {
+    /* package */ QueryBuilder add(final String key, final Integer value) {
         queryMap.put(key, value);
         return this;
     }

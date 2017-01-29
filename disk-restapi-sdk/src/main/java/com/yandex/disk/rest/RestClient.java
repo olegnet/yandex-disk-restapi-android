@@ -8,10 +8,6 @@
 
 package com.yandex.disk.rest;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
-import com.squareup.okhttp.OkHttpClient;
 import com.yandex.disk.rest.exceptions.ServerException;
 import com.yandex.disk.rest.exceptions.ServerIOException;
 import com.yandex.disk.rest.exceptions.WrongMethodException;
@@ -34,96 +30,61 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
-import retrofit.GsonConverterFactory;
-import retrofit.Response;
-import retrofit.Retrofit;
+import okhttp3.OkHttpClient;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 import static com.yandex.disk.rest.retrofit.ErrorHandler.throwHttpCodeException;
 
 public class RestClient {
-
-    @NonNull
+    
     private static final Logger logger = LoggerFactory.getLogger(RestClient.class);
-
-    // TODO move logging back from tests
-//    @NonNull
-//    private static final Retrofit.LogLevel LOG_LEVEL = logger.isDebugEnabled()
-//            ? Retrofit.LogLevel.FULL
-//            : Retrofit.LogLevel.NONE;
-
-    @NonNull
+	
     private static final String CLOUD_API_BASE_URL = "https://cloud-api.yandex.net";
 
-    @NonNull
-    private final Credentials credentials;
-
-    @NonNull
     private final OkHttpClient client;
-
-    @NonNull
+	
     private final String serverURL;
-
-    @NonNull
+	
     private final CloudApi cloudApi;
 
-    @NonNull
-    protected final Retrofit.Builder builder;
+	public RestClient(final Credentials credentials) {
+		try {
+			this.serverURL = new URL(CLOUD_API_BASE_URL).toExternalForm();
+		} catch (MalformedURLException ex) {
+			throw new RuntimeException(ex);
+		}
 
-    public RestClient(@NonNull final Credentials credentials) {
-        this(credentials, OkHttpClientFactory.makeClient());
+		OkHttpClient.Builder okhttpbuilder = OkHttpClientFactory.makeClient();
+		okhttpbuilder.addInterceptor(new RequestInterceptor(credentials.getHeaders()));
+		this.client = okhttpbuilder.build();
+
+		Retrofit.Builder builder = new Retrofit.Builder()
+				.client(client)
+				.baseUrl(getUrl())
+				.addConverterFactory(GsonConverterFactory.create());
+
+        this.cloudApi = builder.build().create(CloudApi.class);
     }
-
-    public RestClient(@NonNull final Credentials credentials, @NonNull final OkHttpClient client) {
-        this(credentials, client, CLOUD_API_BASE_URL);
-    }
-
-    public RestClient(@NonNull final Credentials credentials, @NonNull final OkHttpClient client,
-                      @NonNull final String serverUrl) {
-        this.credentials = credentials;
-        this.client = client;
-        try {
-            this.serverURL = new URL(serverUrl).toExternalForm();
-        } catch (MalformedURLException ex) {
-            throw new RuntimeException(ex);
-        }
-
-        this.client.interceptors()
-                .add(new RequestInterceptor(credentials.getHeaders()));
-
-        this.builder = new Retrofit.Builder()
-                .client(client)
-                .baseUrl(getUrl())
-                .addConverterFactory(GsonConverterFactory.create());
-
-        this.cloudApi = builder
-                .build()
-                .create(CloudApi.class);
-    }
-
-    @NonNull
+	
     /* package */ String getUrl() {
         return serverURL;
     }
 
-    @NonNull
-    /* package */ OkHttpClient getClient() {
+	/* package */ OkHttpClient getClient() {
         return client;
     }
-
-    @NonNull
-    private <T> T processResponse(@NonNull Response<T> response)
-            throws HttpCodeException {
-        return response.isSuccess() ? response.body() : throwHttpCodeException(response);
+	
+    private <T> T processResponse(Response<T> response) throws HttpCodeException {
+        return response.isSuccessful() ? response.body() : throwHttpCodeException(response);
     }
 
     /**
      * Server API version and build
      */
-    @NonNull
-    public ApiVersion getApiVersion()
-            throws IOException, ServerIOException {
-        return processResponse(cloudApi.getApiVersion()
-                .execute());
+    public ApiVersion getApiVersion() throws IOException, ServerIOException {
+        return processResponse(cloudApi.getApiVersion().execute());
     }
 
     /**
@@ -132,11 +93,8 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/operations.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/operations-docpage/">russian</a></p>
      */
-    @NonNull
-    public Operation getOperation(@NonNull final String operationId)
-            throws IOException, ServerIOException {
-        return processResponse(cloudApi.getOperation(operationId)
-                .execute());
+    public Operation getOperation(final String operationId) throws IOException, ServerIOException {
+        return processResponse(cloudApi.getOperation(operationId).execute());
     }
 
     /**
@@ -145,14 +103,11 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/operations.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/operations-docpage/">russian</a></p>
      */
-    @NonNull
-    public Operation getOperation(@NonNull final Link link)
-            throws IOException, WrongMethodException, HttpCodeException {
+    public Operation getOperation(final Link link) throws IOException, WrongMethodException, HttpCodeException {
         if (!"GET".equalsIgnoreCase(link.getMethod())) {
             throw new WrongMethodException("Method in Link object is not GET");
         }
-        final Operation operation = new RestClientIO(client)
-                .getOperation(link.getHref());
+        final Operation operation = new RestClientIO(client).getOperation(link.getHref());
         logger.debug("getOperation: " + operation);
         return operation;
     }
@@ -163,8 +118,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/operations.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/operations-docpage/">russian</a></p>
      */
-    @NonNull
-    public Operation waitProgress(@NonNull final Link link, @NonNull final Runnable waiting)
+    public Operation waitProgress(final Link link, final Runnable waiting)
             throws IOException, WrongMethodException, HttpCodeException {
         while (true) {
             final Operation operation = getOperation(link);
@@ -181,9 +135,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/capacity.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/capacity-docpage/">russian</a></p>
      */
-    @NonNull
-    public DiskInfo getDiskInfo()
-            throws IOException, ServerIOException {
+    public DiskInfo getDiskInfo() throws IOException, ServerIOException {
         return getDiskInfo(null);
     }
 
@@ -193,11 +145,8 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/capacity.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/capacity-docpage/">russian</a></p>
      */
-    @NonNull
-    public DiskInfo getDiskInfo(@Nullable final String fields)
-            throws IOException, ServerIOException {
-        return processResponse(cloudApi.getDiskInfo(fields)
-                .execute());
+    public DiskInfo getDiskInfo(final String fields) throws IOException, ServerIOException {
+        return processResponse(cloudApi.getDiskInfo(fields).execute());
     }
 
     /**
@@ -206,9 +155,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/meta.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/meta-docpage/">russian</a></p>
      */
-    @NonNull
-    public Resource getResources(@NonNull final ResourcesArgs args)
-            throws IOException, ServerIOException {
+    public Resource getResources(final ResourcesArgs args) throws IOException, ServerIOException {
         final Resource resource = processResponse(cloudApi.getResources(args.getPath(),
                 args.getFields(), args.getLimit(), args.getOffset(), args.getSort(),
                 args.getPreviewSize(), args.getPreviewCrop())
@@ -225,9 +172,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/all-files.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/all-files-docpage/">russian</a></p>
      */
-    @NonNull
-    public ResourceList getFlatResourceList(@NonNull final ResourcesArgs args)
-            throws IOException, ServerIOException {
+    public ResourceList getFlatResourceList(final ResourcesArgs args) throws IOException, ServerIOException {
         final ResourceList resourceList = processResponse(cloudApi.getFlatResourceList(args.getLimit(),
                 args.getMediaType(), args.getOffset(), args.getFields(), args.getPreviewSize(),
                 args.getPreviewCrop())
@@ -244,9 +189,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/recent-upload.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/recent-upload-docpage/">russian</a></p>
      */
-    @NonNull
-    public ResourceList getLastUploadedResources(@NonNull final ResourcesArgs args)
-            throws IOException, ServerIOException {
+    public ResourceList getLastUploadedResources(final ResourcesArgs args) throws IOException, ServerIOException {
         final ResourceList resourceList = processResponse(cloudApi.getLastUploadedResources(args.getLimit(),
                 args.getMediaType(), args.getOffset(), args.getFields(), args.getPreviewSize(),
                 args.getPreviewCrop())
@@ -263,8 +206,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/meta-add.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/meta-add-docpage/">russian</a></p>
      */
-    public Resource patchResource(final ResourcesArgs args)
-            throws ServerIOException, IOException {
+    public Resource patchResource(final ResourcesArgs args) throws ServerIOException, IOException {
         final Resource resource = processResponse(cloudApi.patchResource(args.getPath(), args.getFields(),
                 args.getBody())
                 .execute());
@@ -280,9 +222,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/public.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/public-docpage/">russian</a></p>
      */
-    @NonNull
-    public Resource listPublicResources(@NonNull final ResourcesArgs args)
-            throws IOException, ServerIOException {
+    public Resource listPublicResources(final ResourcesArgs args) throws IOException, ServerIOException {
         final Resource resource = processResponse(cloudApi.listPublicResources(args.getPublicKey(),
                 args.getPath(), args.getFields(), args.getLimit(), args.getOffset(), args.getSort(),
                 args.getPreviewSize(), args.getPreviewCrop())
@@ -299,9 +239,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/meta.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/meta-docpage/">russian</a></p>
      */
-    @NonNull
-    public Resource getTrashResources(@NonNull final ResourcesArgs args)
-            throws IOException, ServerIOException {
+    public Resource getTrashResources(final ResourcesArgs args) throws IOException, ServerIOException {
         final Resource resource = processResponse(cloudApi.getTrashResources(args.getPath(),
                 args.getFields(), args.getLimit(), args.getOffset(), args.getSort(),
                 args.getPreviewSize(), args.getPreviewCrop())
@@ -342,13 +280,14 @@ public class RestClient {
                         .build());
     }
 
-    private void parseListResponse(@NonNull final Resource resource, @NonNull final ResourcesHandler handler) {
+    private void parseListResponse(final Resource resource, final ResourcesHandler handler) {
         handler.handleSelf(resource);
         final ResourceList items = resource.getResourceList();
         int size = 0;
         if (items != null) {
             size = items.getItems().size();
-            for (final Resource item : items.getItems()) {
+			//noinspection Convert2streamapi
+			for (final Resource item : items.getItems()) {
                 handler.handleItem(item);
             }
         }
@@ -360,7 +299,8 @@ public class RestClient {
         int size = 0;
         if (items != null) {
             size = items.size();
-            for (Resource item : items) {
+			//noinspection Convert2streamapi
+			for (Resource item : items) {
                 handler.handleItem(item);
             }
         }
@@ -373,13 +313,10 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/content.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/content-docpage/">russian</a></p>
      */
-    public void downloadFile(@NonNull final String path, @NonNull final File saveTo,
-                             @Nullable final ProgressListener progressListener)
+    public void downloadFile(final String path, final File saveTo, final ProgressListener progressListener)
             throws IOException, ServerException {
-        final Link link = processResponse(cloudApi.getDownloadLink(path)
-                .execute());
-        new RestClientIO(client)
-                .downloadUrl(link.getHref(), new FileDownloadListener(saveTo, progressListener));
+        final Link link = processResponse(cloudApi.getDownloadLink(path).execute());
+        new RestClientIO(client).downloadUrl(link.getHref(), new FileDownloadListener(saveTo, progressListener));
     }
 
     /**
@@ -388,12 +325,10 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/content.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/content-docpage/">russian</a></p>
      */
-    public void downloadFile(@NonNull final String path, @NonNull final DownloadListener downloadListener)
+    public void downloadFile(final String path, final DownloadListener downloadListener)
             throws IOException, ServerException {
-        final Link link = processResponse(cloudApi.getDownloadLink(path)
-                .execute());
-        new RestClientIO(client)
-                .downloadUrl(link.getHref(), downloadListener);
+        final Link link = processResponse(cloudApi.getDownloadLink(path).execute());
+        new RestClientIO(client).downloadUrl(link.getHref(), downloadListener);
     }
 
     /**
@@ -402,11 +337,9 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/upload-ext.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/upload-ext-docpage/">russian</a></p>
      */
-    @NonNull
-    public Link saveFromUrl(@NonNull final String url, @NonNull final String serverPath)
+    public Link saveFromUrl(final String url, final String serverPath)
             throws ServerIOException, IOException {
-        return processResponse(cloudApi.saveFromUrl(url, serverPath)
-                .execute());
+        return processResponse(cloudApi.saveFromUrl(url, serverPath).execute());
     }
 
     /**
@@ -415,8 +348,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/upload.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/upload-docpage/">russian</a></p>
      */
-    @NonNull
-    public Link getUploadLink(@NonNull final String serverPath, final boolean overwrite)
+    public Link getUploadLink(final String serverPath, final boolean overwrite)
             throws ServerIOException, WrongMethodException, IOException {
         final Link link = processResponse(cloudApi.getUploadLink(serverPath, overwrite)
                 .execute());
@@ -432,8 +364,8 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/upload.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/upload-docpage/">russian</a></p>
      */
-    public void uploadFile(@NonNull final Link link, final boolean resumeUpload, @NonNull final File localSource,
-                           @Nullable final ProgressListener progressListener)
+    public void uploadFile(final Link link, final boolean resumeUpload, final File localSource,
+                           final ProgressListener progressListener)
             throws IOException, ServerException {
         RestClientIO clientIO = new RestClientIO(client);
         long startOffset = 0;
@@ -451,8 +383,7 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/delete.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/delete-docpage/">russian</a></p>
      */
-    @NonNull
-    public Link delete(@NonNull final String path, final boolean permanently)
+    public Link delete(final String path, final boolean permanently)
             throws ServerIOException, IOException {
         return new RestClientIO(client)
                 .delete(new QueryBuilder(getUrl() + "/v1/disk/resources")
@@ -467,11 +398,8 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/create-folder.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/create-folder-docpage/">russian</a></p>
      */
-    @NonNull
-    public Link makeFolder(@NonNull final String path)
-            throws ServerIOException, IOException {
-        return processResponse(cloudApi.makeFolder(path)
-                .execute());
+    public Link makeFolder(final String path) throws ServerIOException, IOException {
+        return processResponse(cloudApi.makeFolder(path).execute());
     }
 
     /**
@@ -480,11 +408,9 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/copy.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/copy-docpage/">russian</a></p>
      */
-    @NonNull
-    public Link copy(@NonNull final String from, @NonNull final String path, final boolean overwrite)
+    public Link copy(final String from, final String path, final boolean overwrite)
             throws ServerIOException, IOException {
-        return processResponse(cloudApi.copy(from, path, overwrite)
-                .execute());
+        return processResponse(cloudApi.copy(from, path, overwrite).execute());
     }
 
     /**
@@ -493,11 +419,9 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/move.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/move-docpage/">russian</a></p>
      */
-    @NonNull
-    public Link move(@NonNull final String from, @NonNull final String path, final boolean overwrite)
+    public Link move(final String from, final String path, final boolean overwrite)
             throws ServerIOException, IOException {
-        return processResponse(cloudApi.move(from, path, overwrite)
-                .execute());
+        return processResponse(cloudApi.move(from, path, overwrite).execute());
     }
 
     /**
@@ -506,11 +430,9 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/publish.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/publish-docpage/">russian</a></p>
      */
-    @NonNull
-    public Link publish(@NonNull final String path)
+    public Link publish(final String path)
             throws ServerIOException, IOException {
-        return processResponse(cloudApi.publish(path)
-                .execute());
+        return processResponse(cloudApi.publish(path).execute());
     }
 
     /**
@@ -519,11 +441,9 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/publish.xml">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/publish-docpage/">russian</a></p>
      */
-    @NonNull
-    public Link unpublish(@NonNull final String path)
+    public Link unpublish(final String path)
             throws ServerIOException, IOException {
-        return processResponse(cloudApi.unpublish(path)
-                .execute());
+        return processResponse(cloudApi.unpublish(path).execute());
     }
 
     /**
@@ -532,13 +452,12 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/public.xml#download">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/public-docpage/#download">russian</a></p>
      */
-    public void downloadPublicResource(@NonNull final String publicKey, @NonNull final String path,
-                                       @NonNull final File saveTo, @Nullable final ProgressListener progressListener)
+    public void downloadPublicResource(final String publicKey, final String path,
+                                       final File saveTo, final ProgressListener progressListener)
             throws IOException, ServerException {
         final Link link = processResponse(cloudApi.getPublicResourceDownloadLink(publicKey, path)
                 .execute());
-        new RestClientIO(client)
-                .downloadUrl(link.getHref(), new FileDownloadListener(saveTo, progressListener));
+        new RestClientIO(client).downloadUrl(link.getHref(), new FileDownloadListener(saveTo, progressListener));
     }
 
     /**
@@ -547,11 +466,8 @@ public class RestClient {
      * @see <p>API reference <a href="http://api.yandex.com/disk/api/reference/public.xml#save">english</a>,
      * <a href="https://tech.yandex.ru/disk/api/reference/public-docpage/#save">russian</a></p>
      */
-    @NonNull
-    public Link savePublicResource(@NonNull final String publicKey, @NonNull final String path,
-                                   @NonNull final String name)
+    public Link savePublicResource(final String publicKey, final String path, final String name)
             throws IOException, ServerException {
-        return processResponse(cloudApi.savePublicResource(publicKey, path, name)
-                .execute());
+        return processResponse(cloudApi.savePublicResource(publicKey, path, name).execute());
     }
 }
